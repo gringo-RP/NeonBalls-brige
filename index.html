@@ -1,0 +1,178 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEON BALLS</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: #050510;
+  color: white;
+  font-family: Arial, sans-serif;
+  text-align: center;
+}
+h1 {
+  color: #00f7ff;
+  text-shadow: 0 0 15px #00f7ff;
+  letter-spacing: 5px;
+}
+#score {
+  color: #fff;
+  font-size: 20px;
+  margin: 12px;
+}
+canvas {
+  display: block;
+  width: 95vw;
+  max-width: 600px;
+  margin: auto;
+  border: 2px solid #00f7ff;
+  box-shadow: 0 0 20px #00f7ff55;
+  background: #080818;
+}
+button {
+  margin: 15px;
+  padding: 12px 25px;
+  background: #00eaff;
+  color: #000;
+  border: 0;
+  border-radius: 8px;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+
+<h1>NEON BALLS</h1>
+<div id="score">OBJETIVO: CHEGAR AO CENTRO</div>
+<canvas id="game" width="600" height="750"></canvas>
+<button onclick="resetGame()">REINICIAR JOGO</button>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const colors = ["#00eaff","#ff1744","#ffffff","#111111"];
+let balls = [];
+let winner = null;
+
+function resetGame() {
+  winner = null;
+  balls = [
+    {x:100,y:100,vx:0,vy:0,color:colors[0],name:"AZUL"},
+    {x:500,y:100,vx:0,vy:0,color:colors[1],name:"VERMELHA"},
+    {x:100,y:650,vx:0,vy:0,color:colors[2],name:"BRANCA"},
+    {x:500,y:650,vx:0,vy:0,color:colors[3],name:"PRETA"}
+  ];
+}
+resetGame();
+
+function drawArena() {
+  ctx.strokeStyle = "#00eaff";
+  ctx.lineWidth = 3;
+  ctx.strokeRect(20,20,560,710);
+
+  ctx.strokeStyle = "#6622ff";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.arc(300,375,45,0,Math.PI*2);
+  ctx.stroke();
+
+  ctx.fillStyle = "#00eaff";
+  ctx.font = "16px Arial";
+  ctx.fillText("ALVO",275,380);
+}
+
+function update() {
+  if (!winner) {
+    balls.forEach(b => {
+      b.x += b.vx;
+      b.y += b.vy;
+      b.vx *= 0.995;
+      b.vy *= 0.995;
+
+      if(b.x < 35 || b.x > 565) b.vx *= -1;
+      if(b.y < 35 || b.y > 715) b.vy *= -1;
+
+      b.x = Math.max(35,Math.min(565,b.x));
+      b.y = Math.max(35,Math.min(715,b.y));
+
+      if(Math.hypot(b.x-300,b.y-375)<35 &&
+         Math.hypot(b.vx,b.vy)>0.3) {
+        winner = b.name;
+      }
+    });
+
+    for(let i=0;i<balls.length;i++){
+      for(let j=i+1;j<balls.length;j++){
+        let a=balls[i],b=balls[j];
+        let dx=b.x-a.x,dy=b.y-a.y;
+        let d=Math.hypot(dx,dy);
+        if(d<30 && d>0){
+          let nx=dx/d,ny=dy/d;
+          let force=(30-d)*0.5;
+          a.x-=nx*force;
+          a.y-=ny*force;
+          b.x+=nx*force;
+          b.y+=ny*force;
+          a.vx-=nx*1.5;
+          a.vy-=ny*1.5;
+          b.vx+=nx*1.5;
+          b.vy+=ny*1.5;
+        }
+      }
+    }
+  }
+
+  ctx.clearRect(0,0,600,750);
+  drawArena();
+
+  balls.forEach(b=>{
+    ctx.beginPath();
+    ctx.arc(b.x,b.y,15,0,Math.PI*2);
+    ctx.fillStyle=b.color;
+    ctx.shadowBlur=20;
+    ctx.shadowColor=b.color;
+    ctx.fill();
+    ctx.shadowBlur=0;
+    ctx.fillStyle="#fff";
+    ctx.font="12px Arial";
+    ctx.textAlign="center";
+    ctx.fillText(b.name,b.x,b.y-23);
+  });
+
+  if(winner){
+    ctx.fillStyle="#00ff88";
+    ctx.font="bold 30px Arial";
+    ctx.textAlign="center";
+    ctx.fillText("VENCEDOR: "+winner,300,375);
+    document.getElementById("score").innerText=
+      "🏆 VENCEDOR: "+winner;
+  }
+
+  requestAnimationFrame(update);
+}
+
+canvas.addEventListener("click",e=>{
+  if(winner) return;
+  const r=canvas.getBoundingClientRect();
+  const x=(e.clientX-r.left)*600/r.width;
+  const y=(e.clientY-r.top)*750/r.height;
+  balls.forEach(b=>{
+    let dx=x-b.x,dy=y-b.y;
+    let d=Math.hypot(dx,dy);
+    if(d<100 && d>0){
+      b.vx+=dx/d*5;
+      b.vy+=dy/d*5;
+    }
+  });
+});
+
+update();
+</script>
+</body>
+  </html>
+  
