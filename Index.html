@@ -1,0 +1,343 @@
+
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NEON BALLS</title>
+<style>
+:root{--bg:#050816;--panel:#0b1230;--line:#26366e;--cyan:#36e8ff;--pink:#ff3ca6;--text:#eef4ff}
+*{box-sizing:border-box}
+body{margin:0;background:radial-gradient(circle at 50% 0%,#15204b 0,#050816 55%);color:var(--text);font-family:Arial,sans-serif;padding:16px}
+main{max-width:900px;margin:auto}
+h1{text-align:center;letter-spacing:5px;color:var(--cyan);text-shadow:0 0 14px #00d9ff;margin:8px 0}
+.sub{text-align:center;color:#a9b9e8;margin:0 0 16px}
+.panel{background:#0b1230dd;border:1px solid var(--line);border-radius:14px;padding:12px;margin:12px 0;box-shadow:0 0 18px #091b50}
+.top{display:flex;gap:10px;align-items:center;justify-content:center;flex-wrap:wrap}
+button,select{background:#111d46;color:white;border:1px solid #4059a5;border-radius:9px;padding:10px 12px;font-weight:bold;cursor:pointer}
+button:active{transform:scale(.97)}
+button:hover{filter:brightness(1.25)}
+#board{display:grid;grid-template-columns:repeat(20,1fr);gap:2px;width:min(92vw,620px);aspect-ratio:1;margin:12px auto;background:#101a3d;padding:5px;border:1px solid #344b9b;border-radius:10px;box-shadow:0 0 24px #00cfff33}
+.cell{min-width:0;min-height:0;background:#0a1028;border-radius:2px;display:flex;align-items:center;justify-content:center;position:relative}
+.cell.core{background:#38204f;box-shadow:inset 0 0 8px #ff3ca6}
+.cell.wall{background:#e7a52d;box-shadow:0 0 7px #ffbd42}
+.ball{width:75%;height:75%;border-radius:50%;box-shadow:0 0 9px currentColor}
+.blue{background:#28aaff;color:#28aaff}
+.red{background:#ff3d5c;color:#ff3d5c}
+.black{background:#aab2d4;color:#aab2d4;border:2px solid #333}
+.white{background:#fff;color:#fff}
+.scores{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.score{padding:9px;border:1px solid #293b78;border-radius:9px;text-align:center;background:#080e24}
+.score strong{display:block;font-size:20px;margin-top:4px}
+.gifts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.gift{display:flex;flex-direction:column;gap:5px}
+.gift button{width:100%;text-align:left}
+.bluebtn{border-color:#168ed8}
+.redbtn{border-color:#d83455}
+.blackbtn{border-color:#8a91ad}
+.whitebtn{border-color:#d9e2ff;color:#fff}
+.small{font-size:12px;color:#9eadd8}
+#status{text-align:center;min-height:24px;color:#65f4ff;font-weight:bold}
+#win{color:#ffdb67;text-align:center;font-size:20px;font-weight:bold;min-height:26px}
+.actions{display:flex;flex-wrap:wrap;gap:8px;justify-content:center}
+@media(max-width:500px){body{padding:8px}.scores{grid-template-columns:repeat(2,1fr)}button{padding:9px 8px;font-size:12px}}
+</style>
+</head>
+<body>
+<main>
+<h1>NEON BALLS</h1>
+<p class="sub">Arena 20 × 20 • Cada presente soma movimentos • Primeiro a atingir a meta vence</p>
+
+<section class="panel top">
+<label for="target">Meta de pontos:</label>
+<select id="target"></select>
+<button id="newGame">🔄 Reiniciar partida</button>
+</section>
+
+<section class="panel">
+<div class="scores" id="scores"></div>
+<div id="board" aria-label="Arena do jogo"></div>
+<div id="win"></div>
+<div id="status">Envie presentes para movimentar as bolas.</div>
+</section>
+
+<section class="panel">
+<h3>🎁 Presentes de movimento</h3>
+<div class="gifts">
+<div class="gift">
+<button class="bluebtn" onclick="gift(0,1)">🔹 Azul +1 casa</button>
+<button class="bluebtn" onclick="gift(0,5)">💎 Azul +5 casas</button>
+</div>
+<div class="gift">
+<button class="redbtn" onclick="gift(1,1)">❤️ Vermelha +1 casa</button>
+<button class="redbtn" onclick="gift(1,5)">📿 Vermelha +5 casas</button>
+</div>
+<div class="gift">
+<button class="blackbtn" onclick="gift(2,1)">⚫ Preta +1 casa</button>
+<button class="blackbtn" onclick="gift(2,5)">🐢 Preta +5 casas</button>
+</div>
+<div class="gift">
+<button class="whitebtn" onclick="gift(3,1)">⚪ Branca +1 casa</button>
+<button class="whitebtn" onclick="gift(3,5)">🌹 Branca +5 casas</button>
+</div>
+</div>
+<p class="small">Os movimentos são acumulativos. Exemplo: dois presentes de +5 = 10 casas. Presentes recebidos durante o movimento entram na fila e não são perdidos.</p>
+</section>
+
+<section class="panel">
+<h3>✨ Presentes especiais</h3>
+<div class="actions">
+<button onclick="eliminate(0)">💎 Retornar azul</button>
+<button onclick="eliminate(1)">📿 Retornar vermelha</button>
+<button onclick="eliminate(2)">🐢 Retornar preta</button>
+<button onclick="eliminate(3)">🌹 Retornar branca</button>
+<button onclick="heart()">🫶 Retornar a mais próxima</button>
+<button onclick="barrier()">🍦 Criar barreira</button>
+<button onclick="resetMatch()">🌌 Galaxy: reiniciar partida</button>
+</div>
+<p class="small">Retornar uma bola não a elimina: ela volta ao canto inicial e continua jogando. A barreira bloqueia uma casa da rota.</p>
+</section>
+</main>
+
+<script>
+const N=20, core={x:9,y:9};
+const starts=[
+{x:0,y:0},
+{x:0,y:19},
+{x:19,y:0},
+{x:19,y:19}
+];
+const names=['Azul','Vermelha','Preta','Branca'];
+const colors=['blue','red','black','white'];
+
+let balls=[],scores=[0,0,0,0];
+let pending=[0,0,0,0];
+let processing=[false,false,false,false];
+let walls=new Set(),finished=false;
+
+const key=(x,y)=>`${x},${y}`;
+
+function init(){
+ balls=starts.map(p=>({...p}));
+ scores=[0,0,0,0];
+ pending=[0,0,0,0];
+ processing=[false,false,false,false];
+ walls=new Set();
+ finished=false;
+ document.getElementById('win').textContent='';
+ render();
+ say('Partida iniciada! Envie presentes para movimentar as bolas.');
+}
+
+function say(t){
+ document.getElementById('status').textContent=t;
+}
+
+function render(){
+ const board=document.getElementById('board');
+ board.innerHTML='';
+
+ for(let y=0;y<N;y++){
+  for(let x=0;x<N;x++){
+   const c=document.createElement('div');
+   c.className='cell';
+
+   if(x===core.x&&y===core.y)c.classList.add('core');
+   if(walls.has(key(x,y)))c.classList.add('wall');
+
+   const i=balls.findIndex(b=>b.x===x&&b.y===y);
+
+   if(i>=0){
+    const b=document.createElement('div');
+    b.className='ball '+colors[i];
+    c.appendChild(b);
+   }else if(x===core.x&&y===core.y){
+    c.textContent='✦';
+    c.style.color='#ff7ac2';
+    c.style.fontSize='10px';
+   }
+
+   board.appendChild(c);
+  }
+ }
+
+ document.getElementById('scores').innerHTML=
+ names.map((n,i)=>`<div class="score">${n}<strong>${scores[i]}</strong><span class="small">Na fila: ${pending[i]}</span></div>`).join('');
+}
+
+function pathFor(i){
+ const start=balls[i];
+ const q=[[start.x,start.y]];
+ const prev=new Map([[key(start.x,start.y),null]]);
+ const dirs=[[1,0],[-1,0],[0,1],[0,-1]];
+
+ while(q.length){
+  const [x,y]=q.shift();
+  const k=key(x,y);
+
+  if(x===core.x&&y===core.y){
+   const path=[];
+   let cur=k;
+
+   while(cur!==null){
+    const [px,py]=cur.split(',').map(Number);
+    path.push({x:px,y:py});
+    cur=prev.get(cur);
+   }
+
+   return path.reverse();
+  }
+
+  for(const [dx,dy] of dirs){
+   const nx=x+dx,ny=y+dy,nk=key(nx,ny);
+
+   if(nx<0||ny<0||nx>=N||ny>=N)continue;
+   if(prev.has(nk)||walls.has(nk))continue;
+
+   if(balls.some((b,j)=>j!==i&&b.x===nx&&b.y===ny))continue;
+
+   prev.set(nk,k);
+   q.push([nx,ny]);
+  }
+ }
+
+ return null;
+}
+
+function gift(i,steps){
+ if(finished)return;
+
+ pending[i]+=steps;
+ render();
+
+ say(`+${steps} para a bola ${names[i]}. Total na fila: ${pending[i]} casas.`);
+
+ runQueue(i);
+}
+
+async function runQueue(i){
+ if(processing[i]||finished)return;
+
+ processing[i]=true;
+
+ while(pending[i]>0&&!finished){
+  const path=pathFor(i);
+
+  if(!path||path.length<2){
+   say(`A bola ${names[i]} está bloqueada. Os ${pending[i]} movimentos continuam guardados.`);
+   break;
+  }
+
+  pending[i]--;
+
+  balls[i]={x:path[1].x,y:path[1].y};
+
+  if(balls[i].x===core.x&&balls[i].y===core.y){
+   scores[i]++;
+   balls[i]={...starts[i]};
+
+   say(`${names[i]} chegou ao Núcleo Neon! +1 ponto.`);
+
+   const target=Number(document.getElementById('target').value);
+
+   if(scores[i]>=target){
+    finished=true;
+    document.getElementById('win').textContent=`🏆 ${names[i]} venceu a partida!`;
+    pending=[0,0,0,0];
+    break;
+   }
+  }
+
+  render();
+  await new Promise(r=>setTimeout(r,145));
+ }
+
+ processing[i]=false;
+ render();
+}
+
+function eliminate(i){
+ balls[i]={...starts[i]};
+ say(`${names[i]} retornou à posição inicial. A bola continua no jogo.`);
+ render();
+}
+
+function heart(){
+ if(finished)return;
+
+ let best=0,dist=Infinity;
+
+ balls.forEach((b,i)=>{
+  const d=Math.abs(b.x-core.x)+Math.abs(b.y-core.y);
+
+  if(d<dist){
+   dist=d;
+   best=i;
+  }
+ });
+
+ eliminate(best);
+ say(`🫶 ${names[best]} era a bola mais próxima do núcleo e voltou ao início.`);
+}
+
+function barrier(){
+ if(finished)return;
+
+ let best=0,dist=Infinity;
+
+ balls.forEach((b,i)=>{
+  const d=Math.abs(b.x-core.x)+Math.abs(b.y-core.y);
+
+  if(d<dist){
+   dist=d;
+   best=i;
+  }
+ });
+
+ const p=pathFor(best);
+
+ if(!p||p.length<2){
+  say('Não há espaço livre para colocar a barreira.');
+  return;
+ }
+
+ let spot=p[Math.min(2,p.length-1)];
+
+ if((spot.x===core.x&&spot.y===core.y)||
+    balls.some(b=>b.x===spot.x&&b.y===spot.y)){
+  spot=p[1];
+ }
+
+ if((spot.x===core.x&&spot.y===core.y)||
+    balls.some(b=>b.x===spot.x&&b.y===spot.y)){
+  say('Não foi possível posicionar a barreira.');
+  return;
+ }
+
+ walls.add(key(spot.x,spot.y));
+ render();
+ say(`🍦 Barreira colocada na rota da bola ${names[best]}.`);
+}
+
+function resetMatch(){
+ init();
+ say('🌌 Partida reiniciada! Pontos, posições e barreiras foram zerados.');
+}
+
+document.getElementById('newGame').addEventListener('click',resetMatch);
+
+const target=document.getElementById('target');
+
+for(let n=1;n<=20;n++){
+ const o=document.createElement('option');
+ o.value=n;
+ o.textContent=n;
+ if(n===10)o.selected=true;
+ target.appendChild(o);
+}
+
+init();
+</script>
+</body>
+  </html>
+  
